@@ -1,0 +1,169 @@
+===============================
+ Guía de Instalação e Uso — minipkg
+===============================
+
+Este documento explica como configurar, instalar e utilizar o **minipkg**,
+o gerenciador de pacotes source-based escrito em shell script, com uma
+receita completa do GCC já incluída.
+
+----------------------------------
+1. Pré-requisitos
+----------------------------------
+- Linux com Bash 4+
+- Ferramentas básicas: make, gcc, g++, tar, xz, bzip2, zstd, unzip, rsync, git
+- Ferramentas opcionais (para receitas que precisem): meson, cmake
+- Conexão com a internet para baixar fontes
+
+----------------------------------
+2. Instalação do minipkg
+----------------------------------
+1) Salve o script `minipkg` (fornecido) em `/usr/local/bin`:
+
+   sudo install -Dm755 minipkg /usr/local/bin/minipkg
+
+2) Adicione as variáveis de ambiente no seu arquivo `~/.profile`:
+
+   export PKG_RECIPES_DIR="$HOME/minipkg/recipes"
+   export PKG_SRC_CACHE="$HOME/minipkg/sources"
+   export PKG_BUILD_DIR="$HOME/minipkg/build"
+   export PKG_STAGING_DIR="$HOME/minipkg/staging"
+   export PKG_DB="$HOME/minipkg/db"
+   export PKG_LOG_DIR="$HOME/minipkg/logs"
+   export PKG_GIT_REPO="$HOME/minipkg/repo"
+   export PKG_PATCH_DIR="$HOME/minipkg/patches"
+   export PKG_FETCH_CMD="curl -L --fail --retry 3 -o"
+   export PKG_JOBS="$(nproc)"
+   export PKG_MAKEFLAGS="-j${PKG_JOBS}"
+   export PKG_STRIP_CMD="strip --strip-unneeded"
+   export PKG_PATH_PREFIX="/"
+   export PKG_COLOR="1"
+
+   source ~/.profile
+
+3) Crie os diretórios:
+
+   mkdir -p $PKG_RECIPES_DIR $PKG_SRC_CACHE $PKG_BUILD_DIR \
+            $PKG_STAGING_DIR $PKG_DB $PKG_LOG_DIR $PKG_GIT_REPO $PKG_PATCH_DIR
+
+4) Inicialize o repositório Git (opcional):
+
+   cd $PKG_GIT_REPO
+   git init
+
+----------------------------------
+3. Receita do GCC (já embutida)
+----------------------------------
+Crie o arquivo `$PKG_RECIPES_DIR/gcc.pkg` com o conteúdo abaixo:
+
+----------------------------------
+gcc.pkg
+----------------------------------
+Name: gcc
+Version: 14.2.0
+Source: https://ftp.gnu.org/gnu/gcc/gcc-14.2.0/gcc-14.2.0.tar.xz
+Sha256: 0740c79a9f4c20f1f28158c77544890d934497a7d2cc68c1dbb2a1f823c0a7e9
+Depends: gmp, mpfr, mpc, isl, zlib
+
+Patch: |
+  # Exemplo de aplicação de patch local
+  patch -Np1 -i $PKG_PATCH_DIR/gcc-14.2.0-somefix.patch
+
+Build: |
+  mkdir -p build
+  cd build
+  ../configure \
+    --prefix=/usr \
+    --enable-languages=c,c++ \
+    --disable-multilib \
+    --disable-bootstrap \
+    --enable-checking=release
+  make $PKG_MAKEFLAGS
+
+Install: |
+  cd build
+  make DESTDIR=$DESTDIR install
+----------------------------------
+
+⚠️ Importante: Você também precisa criar receitas para `gmp`, `mpfr`, `mpc`,
+`isl` e `zlib`, pois são dependências obrigatórias do GCC.
+
+----------------------------------
+4. Aplicando Patches
+----------------------------------
+O **minipkg** permite aplicar patches usando a seção `Patch:` nas receitas.
+
+- Os patches devem ser colocados em:  
+  `$PKG_PATCH_DIR` (exemplo: `$HOME/minipkg/patches`).
+
+- Exemplo de receita com patch local:
+  ----------------------------------
+  Name: exemplo
+  Version: 1.0
+  Source: https://example.org/exemplo-1.0.tar.gz
+  Sha256: abcdef123...
+  
+  Patch: |
+    patch -Np1 -i $PKG_PATCH_DIR/fix-bug.patch
+  
+  Build: |
+    ./configure --prefix=/usr
+    make $PKG_MAKEFLAGS
+  
+  Install: |
+    make DESTDIR=$DESTDIR install
+  ----------------------------------
+
+- Exemplo de patch remoto:
+  ----------------------------------
+  Patch: |
+    curl -L https://example.org/fix-bug.patch | patch -Np1
+  ----------------------------------
+
+O bloco `Patch:` é executado **logo após a extração do source**
+e **antes da compilação**.
+
+----------------------------------
+5. Comandos básicos do minipkg
+----------------------------------
+- Listar pacotes instalados:
+    minipkg list-installed
+
+- Mostrar informações de um pacote:
+    minipkg info gcc
+
+- Construir (compilar) um pacote:
+    minipkg build gcc
+
+- Instalar um pacote (copia para /):
+    minipkg install gcc
+
+- Remover um pacote (verifica dependências reversas):
+    minipkg remove gcc
+
+- Remover pacotes órfãos:
+    minipkg autoremove
+
+- Recompilar um pacote:
+    minipkg rebuild gcc
+
+- Recompilar todo o sistema (ordem de dependências):
+    minipkg rebuild-system
+
+- Atualizar pacote apenas se versão for maior:
+    minipkg upgrade gcc
+
+- Sincronizar repositório Git local:
+    minipkg sync
+
+----------------------------------
+6. Testando o GCC
+----------------------------------
+Depois da instalação bem-sucedida:
+
+   gcc --version
+
+Deve mostrar a versão 14.2.0 (ou superior).
+
+----------------------------------
+Fim do guia.
+----------------------------------
