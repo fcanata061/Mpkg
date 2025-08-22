@@ -37,6 +37,11 @@ receita completa do GCC já incluída.
    export PKG_STRIP_CMD="strip --strip-unneeded"
    export PKG_PATH_PREFIX="/"
    export PKG_COLOR="1"
+   
+   # para lfs desconectar
+   # export LFS=/mnt/lfs
+   # export PKG_PATH_PREFIX="$LFS"
+   -------------------------------
 
    source ~/.profile
 
